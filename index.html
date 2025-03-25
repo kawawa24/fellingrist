@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>セーブデータ選択</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: repeating-linear-gradient(45deg, blueviolet, blueviolet 20px, red 20px, red 40px);
+            color: white;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .save-slot {
+            background: white;
+            color: black;
+            padding: 10px;
+            margin: 10px;
+            width: 300px;
+            border-radius: 10px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        img {
+            max-width: 100px;
+            display: block;
+            margin: 5px auto;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #imageUrlContainer {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>占いの待ち順番管理アプリへようこそ</h1>
+    <h2>セーブデータから選ぶ</h2>
+    <div id="saveSlots"></div>
+
+    <script>
+        // セーブデータを取得（なければ初期データ）
+        const saveData = JSON.parse(localStorage.getItem("saveData")) || [
+            { id: 1, image: "", exists: false },
+            { id: 2, image: "", exists: false },
+            { id: 3, image: "", exists: false }
+        ];
+
+        function loadSaveSlots() {
+            let container = document.getElementById("saveSlots");
+            container.innerHTML = "";
+
+            saveData.forEach((slot, index) => {
+                let div = document.createElement("div");
+                div.className = "save-slot";
+                div.innerHTML = `
+                    <p>セーブデータ ${slot.id}</p>
+                    ${slot.exists ? `<img src="${slot.image}" width="100">` : "<p>データなし</p>"}
+                    <button onclick="selectSave(${index})">これにする</button>
+                    <button onclick="editSave(${index})">編集</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function selectSave(index) {
+            if (!saveData[index].exists) return alert("このセーブデータは選べません！");
+            localStorage.setItem("selectedSave", JSON.stringify(saveData[index]));
+            window.location.href = "queue.html"; // 🚀 占い待ちリスト画面へ
+        }
+
+        function editSave(index) {
+            let action = prompt("画像の変更方法を選んでください（1: URL入力, 2: 端末の画像）");
+
+            if (action === "1") {
+                let imageUrl = prompt("画像URLを入力してください");
+                saveData[index].image = imageUrl;
+                saveData[index].exists = true;
+                localStorage.setItem("saveData", JSON.stringify(saveData));
+                loadSaveSlots();
+            } else if (action === "2") {
+                let fileInput = document.createElement("input");
+                fileInput.type = "file";
+                fileInput.accept = "image/*";
+                fileInput.onchange = function (event) {
+                    let file = event.target.files[0];
+                    if (file) {
+                        let reader = new FileReader();
+                        reader.onload = function (e) {
+                            saveData[index].image = e.target.result; // Base64保存
+                            saveData[index].exists = true;
+                            localStorage.setItem("saveData", JSON.stringify(saveData));
+                            loadSaveSlots();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+                fileInput.click();
+            } else {
+                let confirmDelete = confirm("本当に消去しますか？");
+                if (confirmDelete) {
+                    saveData[index] = { id: index + 1, image: "", exists: false };
+                    localStorage.setItem("saveData", JSON.stringify(saveData));
+                    loadSaveSlots();
+                }
+            }
+        }
+
+        loadSaveSlots();
+    </script>
+</body>
+</html>
